@@ -1,11 +1,11 @@
-﻿## Sci-Net.PowerShell.AzureLogin
+## Sci-Net.PowerShell.AzureLogin
 ## Allows automated login to Azure through Powershell, without the need to perform MFA if the account is used in a web session
 ## Adds following functons:
 ##   Connect-SmartAzAccount
 ##   Connect-AzAccountManual
 ##   Get-AzAccountToken
 
-## Version 1.0.0
+## Version 1.0.1
 
 ## Developed by: 
 ## Nathan Moore on behalf of Sci-Net Business Solutions
@@ -158,14 +158,16 @@ Function Check-AzAccountsPreRequisite
 param (
     [Boolean] $InstallPrerequisites
 )
+    Import-Module Az.Accounts -ErrorAction SilentlyContinue
+    
     if ("Az.Accounts" -notin (Get-Module).Name) {
         if ($InstallPrerequisites) {
             start-process -FilePath "powershell" -ArgumentList "Install-Module az.accounts" -WindowStyle Hidden
+            import-module Az.Accounts
         } else {
             Throw "Missing Pre-Requsite Modules : Ensure Az.Accounts module is installed and available before trying again. Run:`nInstall-Module Az.Accounts"
         }
     }
-    import-module Az.Accounts
 }
 
 <#
@@ -306,11 +308,12 @@ Export-ModuleMember -Function Connect-AzAccountManual
 Export-ModuleMember -Function Get-AzAccountToken
 
 
+
 # SIG # Begin signature block
 # MIIaEwYJKoZIhvcNAQcCoIIaBDCCGgACAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCCxhsT8ducSjPAA
-# /aoaeJRcYFeI4Z5TjdRCnIkQqo3jHqCCFk8wggQyMIIDGqADAgECAgEBMA0GCSqG
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCDPPMZP3jL66QTr
+# bAcUHV14rvufeBKz+V7W0XzMlUinV6CCFk8wggQyMIIDGqADAgECAgEBMA0GCSqG
 # SIb3DQEBBQUAMHsxCzAJBgNVBAYTAkdCMRswGQYDVQQIDBJHcmVhdGVyIE1hbmNo
 # ZXN0ZXIxEDAOBgNVBAcMB1NhbGZvcmQxGjAYBgNVBAoMEUNvbW9kbyBDQSBMaW1p
 # dGVkMSEwHwYDVQQDDBhBQUEgQ2VydGlmaWNhdGUgU2VydmljZXMwHhcNMDQwMTAx
@@ -434,17 +437,17 @@ Export-ModuleMember -Function Get-AzAccountToken
 # byBQdWJsaWMgQ29kZSBTaWduaW5nIENBIFIzNgIQWzj4+IGGhK+UBDvj6IumZTAN
 # BglghkgBZQMEAgEFAKCBhDAYBgorBgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqG
 # SIb3DQEJAzEMBgorBgEEAYI3AgEEMBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3
-# AgEVMC8GCSqGSIb3DQEJBDEiBCCHJpShS5yu/fiwSdg1W76W4Z3OGFjaI7oacrMm
-# ko87XzANBgkqhkiG9w0BAQEFAASCAgAR5ZuzCrIHMcvwupbK5qk6x1hsX0hfW5we
-# xvyXWJiwfcZ83By+9pUoe/C8yDUClE4DZXPL7yFcweOISO3Msqltnt0le0J8Vf5t
-# 8OrxkthdbrCpIXCRa+BrPunqD7ADsVIIHC1rx812gNf84Xk+cnHSTgg+oreQklAl
-# XJT3AvK14FpTZ1+GOwWfWXL9VBn8qGEg0rxP5wEBC7MWqgHzwaMW/9CM8RQgnk5y
-# U9Dhh2Hz95PveDGUNi4KrsFTO0ix7Wylitys0m5QNHNk2PMB74NWmazkCqP+Buvj
-# wYyBKZSJNAaLQoNmTpfjtIkiVsXNu3dRNWF22S451Vie0PvvmqjVivFfwfQ0SObl
-# XoInrQpl9WuUNxXnZtjv7bNFvljzB7AhJ/Jhu+QE1jQuAKz6FSSAkRd+WB6V8jWq
-# mYefbOqhFfQLp4y8OuCiyBU2Z854BUQogm3idhqoW5enWXMqAx2iA8RcLH4d6wG7
-# vanXhERovUaN17mwSlkxXRUJo/uVaGhA0P6kIwsl7jJ8pwSUxsVRWdeu63m1dmC6
-# GUChCUPKuB+KqxYo5hl1RQ1j06M8vvi1mahRWw6SV7UZXAVNIZu7YZhumCKB5Ge9
-# zgHP6Q4coAjHszxd1LOrMP+XCu1TRHiNTzPheOyjhkoRupTYv88OOgzVBhvvpF0B
-# RBCSl4qczQ==
+# AgEVMC8GCSqGSIb3DQEJBDEiBCBpaGs1URG5gqeYT/o/sBZM5nm/ZVP6fckqKChc
+# C6Ff5DANBgkqhkiG9w0BAQEFAASCAgBxKWvmxnw1NIclYwIfKkyghZF50PBstk9e
+# JyDhqPWbv03lCAIlFamS/ns4wOTuuyYrKWrb1sbSLrn641T37hg9BuHo5prU4SQp
+# 74zdQ5WtO9WBdiWk+r+F5vqjzY8+Tnk2U0AnFqH9Sjb8lbIfLkt6COLf1yxFWr6h
+# DKndUkKDLmO7n0v9CRHwxeS6Udh9UCgQ+Ce6QDvoiVR4fZu7fRdFCOQOiZecRPBF
+# oybL5fQGsPf1lmh9jjsKGGQoP4JANddJYgNx944Xw1RbQQK8bCXG6dpzPvJERgND
+# rK9btzRsa7WXgMOttLLzngj/HIn0y9rmSM2uLCLnWDFRdrFWDu2zMwnmatHxPhky
+# q9t1XSk1gVUto0m/Wx9psXewXZAl5cuipePotLDYT0EWEyRVucACZP2rPZmWT4rw
+# hYVOVrx7dBkj+rVk4yzsYQrMyLlLKkDkcOaq+4HN1T6BI8bm6eCujhUXzXVWNhfS
+# 7uPJBfV2D8A0shE6aSr3NYP1Up2lAk66DZUOp+wApGFKdz1deV1JSYCLABcEULUS
+# 74nZ9sXEr61lURmR3Ma8UdTlaC5dEt6rDhXwvY0dhEFm9JUsN37EFBioW/n/X2kR
+# 9mm3yRVftC50SnRIfElJHQv+htfCDLuMTQt9tEJPYHZQr7/VUGznmppuL4VpeNok
+# tEHLqlbmsw==
 # SIG # End signature block
