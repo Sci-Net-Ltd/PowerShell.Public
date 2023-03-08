@@ -1,5 +1,5 @@
 ﻿# Example:
-# iex ('$branch="develop20";$user="Sci-Net-Ltd";$repo="Powershell.Public";$ModulePath="AzureLogin"'+(new-object net.webclient).DownloadString('https://raw.githubusercontent.com/PsModuleInstall/InstallFromGithub/master/install.ps1'))
+# iex ('$branch="develop20";$user="Sci-Net-Ltd";$repo="Powershell.Public";$ModulePath="AzureLogin"'+(new-object net.webclient).DownloadString('https://raw.githubusercontent.com/Sci-Net-Ltd/PowerShell.Public/develop20/Module-Installer.ps1'))
 
 ## Built from original script by Dima Stadub
 ## SRC: https://habr.com/en/post/476914/
