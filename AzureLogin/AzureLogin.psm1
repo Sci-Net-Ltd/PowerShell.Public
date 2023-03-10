@@ -5,11 +5,11 @@
 ##   Connect-AzAccountManual
 ##   Get-AzAccountToken
 
-## Version 1.0.1
+## Version 1.1.0
 
 ## Developed by: 
 ## Nathan Moore on behalf of Sci-Net Business Solutions
-## 03-Mar-23
+## 10-Mar-23
 
 <#
 .Synopsis
@@ -31,20 +31,35 @@ param(
     #Include flag to run in debug mode and write access token generated to the host
     [switch] $DebugMode,
     #Include to automatically install pre-requsite modules
-    [switch] $InstallPrerequisites
+    [switch] $InstallPrerequisites,
+    #Include to have prompt confirming account to attempt login with
+    [switch] $ConfirmAccount
 )
-    Check-AzAccountsPreRequisite -InstallPrerequisites $InstallPrerequisites
+
+    Check-AzAccountsPreRequisite -InstallPrerequisites $InstallPrerequisites -DebugMode $DebugMode
        
     $Emailaddress = whoami.exe /upn
     try {
         if ($Emailaddress -match ".*@.*") {
-            $AttemptLogin = Switch([System.Windows.MessageBox]::Show(("Would you like to try logging into Azure as $EmailAddress ?"),"Azure Account Selection",[System.Windows.MessageBoxButton]::YesNo,[System.Windows.MessageBoxImage]::Question)) { 'Yes' {$true} 'No' {$False} }
+            if ($ConfirmAccount) {
+                $AttemptLogin = Switch([System.Windows.MessageBox]::Show(("Would you like to try logging into Azure as $EmailAddress ?"),"Azure Account Selection",[System.Windows.MessageBoxButton]::YesNo,[System.Windows.MessageBoxImage]::Question)) { 'Yes' {$true} 'No' {$False} }
+            } else {
+                $AttemptLogin = $true
+            }
             if ($AttemptLogin) {
                 if ($debugMode) {
-                    $Token = Get-AzAccountToken -EmailAddress $Emailaddress -DebugMode
+                    if ($InstallPrerequisites) {
+                        $Token = Get-AzAccountToken -EmailAddress $Emailaddress -DebugMode -InstallPrerequisites
+                    } else {
+                        $Token = Get-AzAccountToken -EmailAddress $Emailaddress -DebugMode
+                    }
                     Write-Host ("Obtained Token:" + ($Token | Out-String))
                 } else {
-                    $Token = Get-AzAccountToken -EmailAddress $Emailaddress
+                    if ($InstallPrerequisites) {
+                        $Token = Get-AzAccountToken -EmailAddress $Emailaddress -ErrorAction Stop -InstallPrerequisites
+                    } else {
+                        $Token = Get-AzAccountToken -EmailAddress $Emailaddress -ErrorAction Stop
+                    }
                 }
                 
                 if ($SuppressWarnings) {
@@ -62,16 +77,28 @@ param(
                 }
             } else {
                 Write-Host "User elected to login manually, please login:"
-                Connect-AzAccountManual -TenantID $TenantID -SuppressWarnings $SuppressWarnings
+                if ($DebugMode) {
+                    Connect-AzAccountManual -TenantID $TenantID -SuppressWarnings $SuppressWarnings -DebugMode
+                } else {
+                    Connect-AzAccountManual -TenantID $TenantID -SuppressWarnings $SuppressWarnings
+                }
             }
         } else {
             Write-Host "No valid account found, please login:"
-            Connect-AzAccountManual -TenantID $TenantID -SuppressWarnings $SuppressWarnings
+            if ($DebugMode) {
+                Connect-AzAccountManual -TenantID $TenantID -SuppressWarnings $SuppressWarnings -DebugMode
+            } else {
+                Connect-AzAccountManual -TenantID $TenantID -SuppressWarnings $SuppressWarnings
+            }
         }
     } catch {
         Write-Host "Unable to login automatically, please login:"
-        if ($DebugMode) {Write-host $_ -ForegroundColor Red}
-        Connect-AzAccountManual -TenantID $TenantID -SuppressWarnings $SuppressWarnings
+        if ($DebugMode) {
+            Write-host $_ -ForegroundColor Red
+            Connect-AzAccountManual -TenantID $TenantID -SuppressWarnings $SuppressWarnings -DebugMode
+        } else {
+            Connect-AzAccountManual -TenantID $TenantID -SuppressWarnings $SuppressWarnings
+        }
     }
 }
 
@@ -87,12 +114,15 @@ param(
     #Preferred tenancy ID to connect in Azure
     [string] $TenantID,
     #Include flag to hide warnings thrown when connecting to an Azure account with access to multiple subscriptions
-    [Boolean] $SuppressWarnings,
+    [Boolean] $SuppressWarnings = $False,
     #Include to automatically install pre-requsite modules
-    [switch] $InstallPrerequisites
+    [switch] $InstallPrerequisites,
+    #Include to run in debug mode
+    [Switch] $DebugMode
 )
     
-    Check-AzAccountsPreRequisite -InstallPrerequisites $InstallPrerequisites
+    Check-AzAccountsPreRequisite -InstallPrerequisites $InstallPrerequisites -DebugMode $DebugMode
+
     if ($SuppressWarnings) {
         if ($TenantID -eq $null) {
             connect-azaccount -WarningAction SilentlyContinue -TenantId $TenantID
@@ -122,9 +152,13 @@ Param(
     [Parameter(Mandatory = $true, Position = 0)]
     [string] $EmailAddress,
     #Include flag to run in debug mode and write access token generated to the host
-    [switch] $DebugMode
+    [switch] $DebugMode,
+    #Include to automatically install pre-requsite modules
+    [switch] $InstallPrerequisites
 )
     <# Get-AzAccountToken Function Body #>
+
+    Check-ThreadJobPreRequisite -InstallPrerequisites $InstallPrerequisites
 
     if ($debugMode) {Write-Host "Begin Code Obtain"}
     $ResponsePort = Get-InactiveTcpPort -Start 1024 -End 65535
@@ -132,9 +166,32 @@ Param(
     
     $URL = "https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize?scope=https://management.core.windows.net//.default openid profile offline_access&response_type=code&client_id=1950a258-227b-4e31-a9cf-717495945fc2&redirect_uri=http://localhost:$ResponsePort/&x-client-SKU=MSAL.Desktop&x-client-Ver=4.21.0.0&x-client-CPU=x64&x-client-OS=Microsoft Windows NT 10.0.19042.0&login_hint=$EmailAddress"
     $ie = New-Object -COM 'InternetExplorer.Application'
-    #$ie.Visible = $true
+    if ($DebugMode) {$ie.Visible = $true}
     $ie.Navigate($URL)
-    $RawURL = Get-HttpQueryParametersSentToLocalhost -Verbose -Port $ResponsePort
+    try {
+        $RawURL = Get-HttpQueryParametersSentToLocalhostAsync -Verbose -Port $ResponsePort -ErrorAction Stop
+    } catch [System.ArgumentException] { 
+        if ($DebugMode) {
+            Write-Host "Timeout invalid"
+            Write-Error $PSItem.toString()
+        }
+        Close-IETab($URL)
+        throw $_
+    } catch [System.TimeoutException] {
+        if ($DebugMode) {
+            Write-Host "Request Timed Out"
+            Write-Error $PSItem.toString()
+        }
+        Close-IETab($URL)
+        throw $_
+    } catch {
+        if ($DebugMode) {
+            Write-Host "Unknown Error Encountered"
+            Write-Error $PSItem.toString()
+        }
+        Close-IETab($URL)
+        throw $_
+    }
     $parameters = $RawURL -split "[?&]" -like "*=*" | foreach -Begin {$h = @{}} -Process {$h[($_ -split "=",2 | select -index 0)] = ($_ -split "=",2 | select -index 1)} -End {$h}
     if ($debugMode) {Write-Host ("Code Returned:" + ($parameters | out-String))}
     Close-IETab($RawURL)
@@ -156,16 +213,51 @@ Will install Az.Accounts module if paramater is true, otherwise will throw error
 Function Check-AzAccountsPreRequisite
 {
 param (
-    [Boolean] $InstallPrerequisites
+    [Boolean] $InstallPrerequisites,
+    [Boolean] $DebugMode
 )
     Import-Module Az.Accounts -ErrorAction SilentlyContinue
     
     if ("Az.Accounts" -notin (Get-Module).Name) {
         if ($InstallPrerequisites) {
-            start-process -FilePath "powershell" -ArgumentList "Install-Module az.accounts" -WindowStyle Hidden
+            Write-Host "Installing Az.Accounts"
+            if ($DebugMode) {
+                start-process -FilePath "powershell" -ArgumentList "Set-PSRepository -Name PSGallery -InstallationPolicy Trusted `nInstall-Module az.accounts" -WindowStyle Normal -Verb RunAs -Wait
+            } else {
+                start-process -FilePath "powershell" -ArgumentList "Set-PSRepository -Name PSGallery -InstallationPolicy Trusted `nInstall-Module az.accounts" -WindowStyle Hidden -Verb RunAs -Wait
+            }
             import-module Az.Accounts
         } else {
             Throw "Missing Pre-Requsite Modules : Ensure Az.Accounts module is installed and available before trying again. Run:`nInstall-Module Az.Accounts"
+        }
+    }
+}
+
+<#
+.Synopsis
+Ensure ThreadJob module is installed
+.Description
+Will install ThreadJob module if paramater is true, otherwise will throw error prompting user to install the module manually
+#>
+Function Check-ThreadJobPreRequisite
+{
+param (
+    [Boolean] $InstallPrerequisites,
+    [Boolean] $DebugMode
+)
+    Import-Module ThreadJob -ErrorAction SilentlyContinue
+    
+    if ("ThreadJob" -notin (Get-Module).Name) {
+        if ($InstallPrerequisites) {
+            Write-Host "Installing ThreadJob"
+            if ($DebugMode) {
+                start-process -FilePath "powershell" -ArgumentList "Set-PSRepository -Name PSGallery -InstallationPolicy Trusted `nInstall-Module ThreadJob" -WindowStyle Normal -Verb RunAs -Wait
+            } else {
+                start-process -FilePath "powershell" -ArgumentList "Set-PSRepository -Name PSGallery -InstallationPolicy Trusted `nInstall-Module ThreadJob" -WindowStyle Hidden -Verb RunAs -Wait
+            }
+            import-module ThreadJob
+        } else {
+            Throw "Missing Pre-Requsite Modules : Ensure ThreadJob module is installed and available before trying again. Run:`nInstall-Module ThreadJob"
         }
     }
 }
@@ -280,6 +372,72 @@ Function Get-HttpQueryParametersSentToLocalhost
      
 }
 
+<#
+.Synopsis
+Launches HTTP listener on given port as an async job, captures parameters sent and returns them in a raw format
+.Description
+Launches HTTP listener on given port as an async job, captures parameters sent and returns them in a raw format, 
+Based on: https://goodworkaround.com/2019/12/20/quick-powershell-cmdlet-to-get-query-parameters-sent-to-localhost/
+#>
+Function Get-HttpQueryParametersSentToLocalhostAsync
+{
+    [CmdletBinding()]
+    Param
+    (
+        #Port to listen on
+        [Parameter(Mandatory=$false,
+                    ValueFromPipelineByPropertyName=$true,
+                    Position=0)]
+        [int] $Port = 8080,
+ 
+        #HTML content to display once parameters have been captured
+        [Parameter(Mandatory=$false,
+                    ValueFromPipelineByPropertyName=$true,
+                    Position=1)]
+        [string] $Response = "Done",
+
+        #Response Timeout - Will throw timeout error if exceeded
+        [Parameter(Mandatory = $False,
+                    ValueFromPipelineByPropertyName=$True,
+                    Position=2)]
+        [int] $Timeout = 10
+    )
+ 
+    if ($timeout -lt 1) { Throw [system.ArgumentException]::New("Provided value for Timeout is invalid. Timeout must be greater than 0") }
+    
+    
+    $listener = New-Object System.Net.HttpListener
+    $listener.Prefixes.Add("http://localhost:$port/")
+    # Write-verbose "Waiting for request at http://localhost:$Port/"
+    $listener.Start()
+    $Jobs = Start-ThreadJob -Argumentlist @($Port, $Response, $Listener) -ScriptBlock { 
+        Param ( $port , $response , $Listener )
+        
+        $Context = $listener.GetContext() 
+        $Content = [System.Text.Encoding]::UTF8.GetBytes($Response)
+        $Context.Response.OutputStream.Write($Content, 0, $Content.Length)
+        $Context.Response.Close()
+        $listener.Dispose()
+        $Listener.Close()
+        return $context.Request.RawUrl
+    }
+
+
+    foreach ( $i in @(0..$Timeout) )
+    {
+        if ( $Jobs.State -eq "Completed" ) {
+            Return Receive-Job $Jobs
+        } else {
+            Start-sleep -Seconds 1
+        }
+    }
+
+    Write-Host "Automated Login Timed out"
+    $Listener.Dispose()
+    $Listener.Close()
+    throw [System.TimeoutException]::New("Provided timeout for response exceeded")
+}
+
 
 <#
 .Synopsis
@@ -295,7 +453,7 @@ param(
 
     $oWindows = (New-Object -ComObject Shell.Application).Windows
     foreach ($oWindow in $oWindows.Invoke()) {
-        if ($oWindow.Fullname -match "IEXPLORE.EXE" -and $oWindow.LocationURL -match ".*$url") {
+        if ($oWindow.Fullname -match "IEXPLORE.EXE" -and (($oWindow.LocationURL -match ".*$url") -or ($oWindow.LocationURL -eq "$url"))) {
             Write-verbose "Closing tab $($oWindow.LocationURL)"
             $oWindow.Quit()
         }
@@ -309,11 +467,12 @@ Export-ModuleMember -Function Get-AzAccountToken
 
 
 
+
 # SIG # Begin signature block
 # MIIaEwYJKoZIhvcNAQcCoIIaBDCCGgACAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCDPPMZP3jL66QTr
-# bAcUHV14rvufeBKz+V7W0XzMlUinV6CCFk8wggQyMIIDGqADAgECAgEBMA0GCSqG
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCCe4UT7yHtVvq6i
+# XNyxVTDiyhWt4Mip8euYwexrcOFoDaCCFk8wggQyMIIDGqADAgECAgEBMA0GCSqG
 # SIb3DQEBBQUAMHsxCzAJBgNVBAYTAkdCMRswGQYDVQQIDBJHcmVhdGVyIE1hbmNo
 # ZXN0ZXIxEDAOBgNVBAcMB1NhbGZvcmQxGjAYBgNVBAoMEUNvbW9kbyBDQSBMaW1p
 # dGVkMSEwHwYDVQQDDBhBQUEgQ2VydGlmaWNhdGUgU2VydmljZXMwHhcNMDQwMTAx
@@ -437,17 +596,17 @@ Export-ModuleMember -Function Get-AzAccountToken
 # byBQdWJsaWMgQ29kZSBTaWduaW5nIENBIFIzNgIQWzj4+IGGhK+UBDvj6IumZTAN
 # BglghkgBZQMEAgEFAKCBhDAYBgorBgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqG
 # SIb3DQEJAzEMBgorBgEEAYI3AgEEMBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3
-# AgEVMC8GCSqGSIb3DQEJBDEiBCBpaGs1URG5gqeYT/o/sBZM5nm/ZVP6fckqKChc
-# C6Ff5DANBgkqhkiG9w0BAQEFAASCAgBxKWvmxnw1NIclYwIfKkyghZF50PBstk9e
-# JyDhqPWbv03lCAIlFamS/ns4wOTuuyYrKWrb1sbSLrn641T37hg9BuHo5prU4SQp
-# 74zdQ5WtO9WBdiWk+r+F5vqjzY8+Tnk2U0AnFqH9Sjb8lbIfLkt6COLf1yxFWr6h
-# DKndUkKDLmO7n0v9CRHwxeS6Udh9UCgQ+Ce6QDvoiVR4fZu7fRdFCOQOiZecRPBF
-# oybL5fQGsPf1lmh9jjsKGGQoP4JANddJYgNx944Xw1RbQQK8bCXG6dpzPvJERgND
-# rK9btzRsa7WXgMOttLLzngj/HIn0y9rmSM2uLCLnWDFRdrFWDu2zMwnmatHxPhky
-# q9t1XSk1gVUto0m/Wx9psXewXZAl5cuipePotLDYT0EWEyRVucACZP2rPZmWT4rw
-# hYVOVrx7dBkj+rVk4yzsYQrMyLlLKkDkcOaq+4HN1T6BI8bm6eCujhUXzXVWNhfS
-# 7uPJBfV2D8A0shE6aSr3NYP1Up2lAk66DZUOp+wApGFKdz1deV1JSYCLABcEULUS
-# 74nZ9sXEr61lURmR3Ma8UdTlaC5dEt6rDhXwvY0dhEFm9JUsN37EFBioW/n/X2kR
-# 9mm3yRVftC50SnRIfElJHQv+htfCDLuMTQt9tEJPYHZQr7/VUGznmppuL4VpeNok
-# tEHLqlbmsw==
+# AgEVMC8GCSqGSIb3DQEJBDEiBCDz8TiA5UkbduWwXsp3c2woCgkgPAd7Gqhb1fFf
+# yOTxODANBgkqhkiG9w0BAQEFAASCAgBRw7XnyceZHPWVOOZMYP5sQ66WrZrtih9j
+# EjncTFiJnhVFQxmFHDYzX00JwFZqRptmbr9N6zS/YJyZsz0s4JrWUMTCoASqBYJW
+# beN+TMc7oTCxl769nNLBu3Tpz3EbUnfd5hkK+UHYUMktZZ8QwjwQa17r7cz+/FUP
+# DxhTLD1K+Cjk+KFdCGCDyeoLLWOXfJiDC/WkKaFFrZEHgfS2uzD05qRoByF2w/zt
+# TexpsbUl1RO0/kT7UA1SlCtriCvwIhFh+sdkNZR42PAbel/qn0lS7dLXo+z2hmod
+# qmrp6FzRl92GKOAU/xgR3wOwu1eXfyFKLcb/X7Z0o22WXImU5xA0sbs0Z6y1mdv4
+# DAKO+9CQLM8pwK9ncJ5SHxGitJx8Cc7TwGT9bvtJpRarccxiNjcMCQX5KB69a5l7
+# gElX6gs4AH4apEhgq1PdKISaJLtN9Uu36fStT272cpxr483lLpZkynKg/TjqSXjb
+# dNcdsjzkvL93n7JIyI3a1Vne5b+qAXh6v3xL+/Ga7DczFZzttj+3n/nGQRw1bxgC
+# kVjE7MpaOZSK0ZRysmlkbI+NVdPQJBJDsNgatbOkWAEQYtRGSvLLpi+uxxx0qzur
+# QKphwScRENP4t018YagJLP1m38Scnlm2R972Y6Z9zsgRtF3isZDS1Q9+qcsrsZhR
+# FxjbCcTVYg==
 # SIG # End signature block
