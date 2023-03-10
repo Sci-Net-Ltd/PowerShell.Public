@@ -1,8 +1,23 @@
 # PowerShell.Public
 Public facing Sci-Net powershell modules
 
-AzureLogin:
-  Connect-SmartAzAccount
+# Installation Instructions:
+Run the following code (can be done without administrative priviledges):
+```
+# Install Module
+iex ('$branch="develop20";$user="Sci-Net-Ltd";$repo="Powershell.Public";$ModulePath="AzureLogin"'+(new-object net.webclient).DownloadString('https://raw.githubusercontent.com/Sci-Net-Ltd/PowerShell.Public/develop20/Module-Installer.ps1')) 
+
+# Import the module
+Import-module PowerShell.Public\AzureLogin 
+
+# Login automagically and install required modules
+connect-SmartAzAccount -InstallPreRequisites
+```
+
+
+# Module Breakdown:
+## AzureLogin:
+  ### Connect-SmartAzAccount
     Synopsis
       Will attempt to login to Azure without manual user intervention
     Description
@@ -18,7 +33,7 @@ AzureLogin:
       Connect-SmartAzAccount 
       (Get-AzSubscription).Name
 
-  Connect-AzAccountManual
+  ### Connect-AzAccountManual
     Synopsis
       Will launch Connect-AzAccount with support for suppressing warnings
     Description
@@ -28,7 +43,7 @@ AzureLogin:
       SuppressWarnings : Switch : Include flag to hide warnings thrown when connecting to an Azure account with access to multiple subscriptions
       InstallPrerequisites : Switch : Include to automatically install pre-requsite modules
 
-  Get-AzAccountToken
+  ### Get-AzAccountToken
     Synopsis
       Will obtain a bearer token for the given user by their email address
     Description
