@@ -5,7 +5,7 @@
 ##   Connect-AzAccountManual
 ##   Get-AzAccountToken
 
-## Version 1.1.0
+## Version 1.1.1
 
 ## Developed by: 
 ## Nathan Moore on behalf of Sci-Net Business Solutions
@@ -453,7 +453,10 @@ param(
 
     $oWindows = (New-Object -ComObject Shell.Application).Windows
     foreach ($oWindow in $oWindows.Invoke()) {
-        if ($oWindow.Fullname -match "IEXPLORE.EXE" -and (($oWindow.LocationURL -match ".*$url") -or ($oWindow.LocationURL -eq "$url"))) {
+        #$urlsplit = $Url -split "[?]",2
+        #$urlencoded = $urlsplit[0] + "?" + [System.Web.HttpUtility]::UrlEncode($urlsplit[1])
+        $urlprefix = ($url -split "[?]",2)[0]
+        if ($oWindow.Fullname -match "IEXPLORE.EXE" -and (($oWindow.LocationURL -match ".*$url") -or ($oWindow.LocationURL -match "$urlprefix.*") -or ($oWindow.LocationURL -eq "$url"))) {
             Write-verbose "Closing tab $($oWindow.LocationURL)"
             $oWindow.Quit()
         }
@@ -468,11 +471,12 @@ Export-ModuleMember -Function Get-AzAccountToken
 
 
 
+
 # SIG # Begin signature block
 # MIIaEwYJKoZIhvcNAQcCoIIaBDCCGgACAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCCe4UT7yHtVvq6i
-# XNyxVTDiyhWt4Mip8euYwexrcOFoDaCCFk8wggQyMIIDGqADAgECAgEBMA0GCSqG
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCDyFU25LRKjNkws
+# 4A4uQLP/UKTLbE1WTX2upaR7UoOVVKCCFk8wggQyMIIDGqADAgECAgEBMA0GCSqG
 # SIb3DQEBBQUAMHsxCzAJBgNVBAYTAkdCMRswGQYDVQQIDBJHcmVhdGVyIE1hbmNo
 # ZXN0ZXIxEDAOBgNVBAcMB1NhbGZvcmQxGjAYBgNVBAoMEUNvbW9kbyBDQSBMaW1p
 # dGVkMSEwHwYDVQQDDBhBQUEgQ2VydGlmaWNhdGUgU2VydmljZXMwHhcNMDQwMTAx
@@ -596,17 +600,17 @@ Export-ModuleMember -Function Get-AzAccountToken
 # byBQdWJsaWMgQ29kZSBTaWduaW5nIENBIFIzNgIQWzj4+IGGhK+UBDvj6IumZTAN
 # BglghkgBZQMEAgEFAKCBhDAYBgorBgEEAYI3AgEMMQowCKACgAChAoAAMBkGCSqG
 # SIb3DQEJAzEMBgorBgEEAYI3AgEEMBwGCisGAQQBgjcCAQsxDjAMBgorBgEEAYI3
-# AgEVMC8GCSqGSIb3DQEJBDEiBCDz8TiA5UkbduWwXsp3c2woCgkgPAd7Gqhb1fFf
-# yOTxODANBgkqhkiG9w0BAQEFAASCAgBRw7XnyceZHPWVOOZMYP5sQ66WrZrtih9j
-# EjncTFiJnhVFQxmFHDYzX00JwFZqRptmbr9N6zS/YJyZsz0s4JrWUMTCoASqBYJW
-# beN+TMc7oTCxl769nNLBu3Tpz3EbUnfd5hkK+UHYUMktZZ8QwjwQa17r7cz+/FUP
-# DxhTLD1K+Cjk+KFdCGCDyeoLLWOXfJiDC/WkKaFFrZEHgfS2uzD05qRoByF2w/zt
-# TexpsbUl1RO0/kT7UA1SlCtriCvwIhFh+sdkNZR42PAbel/qn0lS7dLXo+z2hmod
-# qmrp6FzRl92GKOAU/xgR3wOwu1eXfyFKLcb/X7Z0o22WXImU5xA0sbs0Z6y1mdv4
-# DAKO+9CQLM8pwK9ncJ5SHxGitJx8Cc7TwGT9bvtJpRarccxiNjcMCQX5KB69a5l7
-# gElX6gs4AH4apEhgq1PdKISaJLtN9Uu36fStT272cpxr483lLpZkynKg/TjqSXjb
-# dNcdsjzkvL93n7JIyI3a1Vne5b+qAXh6v3xL+/Ga7DczFZzttj+3n/nGQRw1bxgC
-# kVjE7MpaOZSK0ZRysmlkbI+NVdPQJBJDsNgatbOkWAEQYtRGSvLLpi+uxxx0qzur
-# QKphwScRENP4t018YagJLP1m38Scnlm2R972Y6Z9zsgRtF3isZDS1Q9+qcsrsZhR
-# FxjbCcTVYg==
+# AgEVMC8GCSqGSIb3DQEJBDEiBCDeyGOUtNsKlOCHn27Bybph5l8Ac0e6dQbcZzOv
+# sBbQ4jANBgkqhkiG9w0BAQEFAASCAgCwZfmKKBqExWvwNR/X1LZ18/96FgwAeQwu
+# BmBtYNsdyp7ZTDlKbZP49qB++lRKr5MTFfuJmx0p+jzmY0604RDNyrRfBqD5tsIY
+# EYcQml82BjKqPdHmKUZBg2+PEG15CCVn1BPSC2KNPlTSkIsSZI1006FzcZihtB3v
+# U4Tl8SRkgCJbfIg2f39dqBghHqhL++22QVRIXKlu1kxzMpYAP2wDB3zW74a1EpJU
+# OrK6HnTM+KE+MEO8edxl9u28jHIcv3vfbReg1t9pAtST1oNPVYW4kHadEHf0uKJ0
+# l3isznqaDieaxyFMRy1mCK3JqAoMQvoYuKTJxSHzBx1L0EEYrHw/N8h47p+bZWi0
+# hqMcBrELmuBuHeyB+bbyTJzZVtOxj/hWwyPNlVeiWjZLt6CGyeToNyydjA/HVp4A
+# Oeu2wTWTOBNKAdlBhwOG2S+vPpVl31joPNA0LEFQyy7ukE0v+XDhh4Mx7XvGwVjV
+# Fu/wJx47GA3VuR5ZBusnr3NllYx1klEPFKegWm48MIAdECCM5xEXG8m4KhZse0wv
+# ghXOQ0X3NfSYxKHnazqHEqHzJncX6fWoq8MWj5wVSV6EBEo3LAwIJVws6+NYVdAA
+# Zg7nyDTXgN4ABhXNBOJQ691d2Q/h9fOMXYzSoNYQRVyULTYnUsQT4ZQ904d0xROY
+# tchAm+pm2w==
 # SIG # End signature block
