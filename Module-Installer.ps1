@@ -187,7 +187,7 @@ function Move-ModuleFiles {
     Out-File -InputObject $ModuleHash -FilePath "$path\hash" 
     
     Write-Progress -Activity "Module Installation"  -Status "Copy Module to PowershellModules folder" -PercentComplete 50;
-    if ( test-path "$DestFolder") { Remove-Item "$DestFolder" -Force}
+    if ( test-path "$DestFolder") { Remove-Item "$DestFolder" -Force -Recurse -Confirm $False}
     Move-Item -Path $path -Destination "$DestFolder" -Force;
     Write-Progress -Activity "Module Installation"  -Status "Copy Module to PowershellModules folder" -PercentComplete 60;
 }
