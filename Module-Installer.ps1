@@ -97,12 +97,14 @@ function Get-ModuleInstallFolder {
 
     $pathToInstal = Join-Path $ProfileModulePath $ModuleName;
 
+    <#
     if (Test-Path $pathToInstal) {
         throw "Unable to install module ''$ModuleName''. 
         Directory with the same name alredy exist in the Profile directory ''$ProfileModulePath''.
         Please rename the exisitng module folder and try again. 
         ";
     }
+    #>
     return $pathToInstal;
 }
 
